@@ -192,6 +192,79 @@ string A_Names[3] = { "desert spoon", "butter knife", "desert fork" };
 string B_Names[2] = { "dinner fork", "salad fork" };
 string C_Names[4] = { "soup spoon", "dinner spoon", "knife", "salad knife" };
 
+bool is_A_on[3] = { true, true, true };
+bool is_B_on[2] = { true, true };
+bool is_C_on[4] = { true, true, true, true };
+
+int level = 0;
+
+void changelevel()
+{
+	//Set all element false
+	for (int i = 0; i < 3; ++i)
+	{
+		is_A_on[i] = false;
+	}
+	for (int i = 0; i < 2; ++i)
+	{
+		is_B_on[i] = false;
+	}
+	for (int i = 0; i < 4; ++i)
+	{
+		is_C_on[i] = false;
+	}
+
+	if(level == 0)
+		return;
+	else if(level == 1)
+	{
+		// soup spoon
+		is_C_on[0] = true;
+	}
+	else if(level == 2)
+	{
+		// butter knife
+		is_A_on[1] = true;
+	}
+	else if (level == 3)
+	{
+		// salad fork
+		is_B_on[1] = true;
+		// salad knife
+		is_C_on[3] = true;
+	}
+	else if (level == 4)
+	{
+		// dinner fork
+		is_B_on[0] = true;
+		// knife
+		is_C_on[2] = true;
+
+	}
+	else if (level == 5)
+	{
+		// desert spoon
+		is_A_on[0] = true;
+		// desert fork
+		is_A_on[2] = true;
+	}
+	else
+	{
+		// set all true
+		for (int i = 0; i < 3; ++i)
+		{
+			is_A_on[i] = true;
+		}
+		for (int i = 0; i < 2; ++i)
+		{
+			is_B_on[i] = true;
+		}
+		for (int i = 0; i < 4; ++i)
+		{
+			is_C_on[i] = true;
+		}
+	}
+}
 
 
 int calX(int x) {
@@ -288,7 +361,7 @@ int main()
 	cp.OpenPort("COM9");
 	cp.ConfigurePort(CBR_9600, 8, FALSE, NOPARITY, ONESTOPBIT); //포트 기본값을 설정한다.
 	cp.SetCommunicationTimeouts(0, 0, 0, 0, 0); //Timeout값 설정
-	while (1)
+	while (0)
 	{
 		cp.ReadByte(b);
 		buffer = b;
@@ -353,10 +426,25 @@ int main()
 	bool entry = false;
 	//int c_center
 	//int count = 0;
+	changelevel();
 
 	while (1)
 	{
-		windowImage = imread("image.png");
+		if(level == 0)
+			windowImage = imread("proceed.jpg");
+		else if(level == 1)
+			windowImage = imread("step1.jpg");
+		else if(level == 2)
+			windowImage = imread("step2.jpg");
+		else if (level == 3)
+			windowImage = imread("step3.jpg");
+		else if (level == 4)
+			windowImage = imread("step4.jpg");
+		else if (level == 5)
+			windowImage = imread("step5.jpg");
+		else
+			windowImage = imread("image.png");
+
 
 		cvResizeWindow("Rtracker", 1024, 768);
 
@@ -452,23 +540,27 @@ int main()
 				cvPoint(a_center_x[i] + 20, a_center_y[i] + 20), cvScalar(255, 255, 255), 2, 8, 0);// 만족하는 경우 사각형을 그려주게 됨 .
 
 
-																								   // if (!entry) {
-																								   //   prev_a_center_x[i] = a_center_x[i];
-																								   //   prev_a_center_y[i] = a_center_y[i];
+		// if (!entry) {
+		//   prev_a_center_x[i] = a_center_x[i];
+		//   prev_a_center_y[i] = a_center_y[i];
 
-																								   // }
-																								   // else {
-																								   //   prev_a_center_x[i] = ((1 - FILTER_VAL) * a_center_x[i] + (FILTER_VAL)* prev_a_center_x[i]);
-																								   //   prev_a_center_y[i] = ((1 - FILTER_VAL) * a_center_y[i] + (FILTER_VAL)* prev_a_center_y[i]);
-																								   // }
+		// }
+		// else {
+		//   prev_a_center_x[i] = ((1 - FILTER_VAL) * a_center_x[i] + (FILTER_VAL)* prev_a_center_x[i]);
+		//   prev_a_center_y[i] = ((1 - FILTER_VAL) * a_center_y[i] + (FILTER_VAL)* prev_a_center_y[i]);
+		// }
 
 			prev_a_center_x[i] = filter(&a_center_x[i], a_center_x[i]);
 			prev_a_center_y[i] = filter(&a_center_y[i], a_center_y[i]);
 
-			rectangle(windowImage, Point(calX(prev_a_center_x[i]), calY(prev_a_center_y[i])),
-				Point(calX(prev_a_center_x[i]) + 20, calY(prev_a_center_y[i]) + 20), Scalar(0, 55, 255), 5, 5);
+			if (is_A_on[i])
+			{
+				rectangle(windowImage, Point(calX(prev_a_center_x[i]), calY(prev_a_center_y[i])),
+					Point(calX(prev_a_center_x[i]) + 20, calY(prev_a_center_y[i]) + 20), Scalar(0, 55, 255), 5, 5);
 
-			putText(windowImage, A_Names[i], Point(calX(prev_a_center_x[i]), calY(prev_a_center_y[i])), CV_FONT_HERSHEY_SIMPLEX, 1, Scalar::all(255), 3, 8);
+				putText(windowImage, A_Names[i], Point(calX(prev_a_center_x[i]), calY(prev_a_center_y[i])), CV_FONT_HERSHEY_SIMPLEX, 1, Scalar::all(255), 3, 8);
+			}
+
 			a_center_x[i] = 0;
 			a_center_y[i] = 0;
 			a_count[i] = 1;
@@ -477,7 +569,7 @@ int main()
 
 		//B section
 		for (int i = frame->height / 2; i < frame->height; i = i + 2)
-			for (int j = 0; j < frame->width / 2; j = j + 2)
+			for (int j = 0; j < frame->width / 3; j = j + 2)
 			{
 
 
@@ -557,22 +649,28 @@ int main()
 			cvRectangle(frame, cvPoint(b_center_x[i], b_center_y[i]),
 				cvPoint(b_center_x[i] + 20, b_center_y[i] + 20), cvScalar(255, 255, 255), 2, 8, 0);// 만족하는 경우 사각형을 그려주게 됨 .
 
-																								   // if (!entry) {
-																								   //   prev_b_center_x[i] = b_center_x[i];
-																								   //   prev_b_center_y[i] = b_center_y[i];
+		// if (!entry) {
+		//   prev_b_center_x[i] = b_center_x[i];
+		//   prev_b_center_y[i] = b_center_y[i];
 
-																								   // }
-																								   // else {
-																								   //   prev_b_center_x[i] = ((1 - FILTER_VAL) * b_center_x[i] + (FILTER_VAL)* prev_b_center_x[i]);
-																								   //   prev_b_center_y[i] = ((1 - FILTER_VAL) * b_center_y[i] + (FILTER_VAL)* prev_b_center_y[i]);
-																								   // }
+		// }
+		// else {
+		//   prev_b_center_x[i] = ((1 - FILTER_VAL) * b_center_x[i] + (FILTER_VAL)* prev_b_center_x[i]);
+		//   prev_b_center_y[i] = ((1 - FILTER_VAL) * b_center_y[i] + (FILTER_VAL)* prev_b_center_y[i]);
+		// }
 
 			prev_b_center_x[i] = filter(&b_center_x[i], b_center_x[i]);
 			prev_b_center_y[i] = filter(&b_center_y[i], b_center_y[i]);
 
-			rectangle(windowImage, Point(calX(prev_b_center_x[i]), calY(prev_b_center_y[i])),
-				Point(calX(prev_b_center_x[i]) + 20, calY(prev_b_center_y[i]) + 20), Scalar(0, 55, 255), 5, 5);
-			putText(windowImage, B_Names[i], Point(calX(prev_b_center_x[i]), calY(prev_b_center_y[i])), CV_FONT_HERSHEY_SIMPLEX, 1, Scalar::all(255), 3, 8);
+			if (is_B_on[i])
+			{
+				rectangle(windowImage, Point(calX(prev_b_center_x[i]), calY(prev_b_center_y[i])),
+					Point(calX(prev_b_center_x[i]) + 20, calY(prev_b_center_y[i]) + 20), Scalar(0, 55, 255), 5, 5);
+				putText(windowImage, B_Names[i], Point(calX(prev_b_center_x[i]), calY(prev_b_center_y[i])), CV_FONT_HERSHEY_SIMPLEX, 1, Scalar::all(255), 3, 8);
+
+			}
+
+
 			b_center_x[i] = 0;
 			b_center_y[i] = 0;
 			b_count[i] = 1;
@@ -582,7 +680,7 @@ int main()
 
 		//B section
 		for (int i = frame->height / 2; i < frame->height; i = i + 2)
-			for (int j = frame->width / 2; j < frame->width; j = j + 2)
+			for (int j = ((frame->width)* 2 / 3); j < frame->width; j = j + 2)
 			{
 
 
@@ -675,9 +773,12 @@ int main()
 			prev_c_center_x[i] = filter(&c_center_x[i], c_center_x[i]);
 			prev_c_center_y[i] = filter(&c_center_y[i], c_center_y[i]);
 
-			rectangle(windowImage, Point(calX(prev_c_center_x[i]), calY(prev_c_center_y[i])),
-				Point(calX(prev_c_center_x[i]) + 20, calY(prev_c_center_y[i]) + 20), Scalar(0, 55, 255), 5, 5);
-			putText(windowImage, C_Names[i], Point(calX(prev_c_center_x[i]), calY(prev_c_center_y[i])), CV_FONT_HERSHEY_SIMPLEX, 1, Scalar::all(255), 3, 8);
+			if (is_C_on[i])
+			{
+				rectangle(windowImage, Point(calX(prev_c_center_x[i]), calY(prev_c_center_y[i])),
+					Point(calX(prev_c_center_x[i]) + 20, calY(prev_c_center_y[i]) + 20), Scalar(0, 55, 255), 5, 5);
+				putText(windowImage, C_Names[i], Point(calX(prev_c_center_x[i]), calY(prev_c_center_y[i])), CV_FONT_HERSHEY_SIMPLEX, 1, Scalar::all(255), 3, 8);
+			}
 			c_center_x[i] = 0;
 			c_center_y[i] = 0;
 			c_count[i] = 1;
@@ -688,7 +789,16 @@ int main()
 		cvShowImage("Rtracker", frame);
 		imshow("MessageShowing", windowImage);
 		c = cvWaitKey(10);
+		//ESC Key
 		if (c == 27) break;
+		//press n to proceed
+		if (c == 'n')
+		{
+			level++;
+			changelevel();
+		}
+
+		//Filter option
 		if (!entry)
 		{
 			entry = true;
