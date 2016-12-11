@@ -1,167 +1,10 @@
-
-/*
-#define DEBUG
-
-#include "camshiftkalman.h"
-#include "util.h"
-
-#include <opencv2/core/core.hpp>
-#include <Windows.h>
-
-Rect selection;
-Point origin;
-Mat frame;
-
-bool trackObject = false;
-bool selectObject;
-
-void onMouse( int event, int x, int y, int, void* )
-{
-if( selectObject )
-{
-selection.x = MIN(x, origin.x);
-selection.y = MIN(y, origin.y);
-selection.width = std::abs(x - origin.x);
-selection.height = std::abs(y - origin.y);
-
-selection &= Rect(0, 0, frame.cols, frame.rows);
-}
-
-switch( event )
-{
-case CV_EVENT_LBUTTONDOWN:
-origin = Point(x,y);
-selection = Rect(x,y,0,0);
-selectObject = true;
-break;
-case CV_EVENT_LBUTTONUP:
-selectObject = false;
-if( selection.width > 0 && selection.height > 0 )
-trackObject = true;
-break;
-default :
-break;
-}
-
-}
-
-int main(int argc, const char* argv[])
-{
-const char* args = {
-"{ m | useMouse  | true | how to choose object to track}"
-"{ v | videoName |      | the video to track}"
-"{ t | featureType | 0  | 0 -- HUE 1 -- SATURATION_HUE 2 -- LBP_HUE 3 -- LBP_SATURATION_HUE}"
-};
-
-//CommandLineParser parser(argc, argv, args);
-//bool isUseMouse = parser.get<bool>("useMouse");
-bool isUseMouse = true;
-
-Rect trackWindow;
-
-string videoName;
-//if(isUseMouse)
-//    videoName = parser.get<string>("videoName");
-if(1)
-{ }
-else
-{
-
-//   * read config parameters from file
-
-string configFile = "config.yaml";
-readXML(configFile, videoName, trackWindow);
-}
-
-featureType type;
-//    int num = parser.get<int>("featureType");
-int num = 0;
-switch(num){
-case 0 :
-type = HUE;
-break;
-case 1 :
-type = SATURATION_HUE;
-break;
-case 2 :
-type = LBP_HUE;
-break;
-case 3 :
-type = LBP_SATURATION_HUE;
-break;
-default :
-cerr << "ERROR : feature type can only be chosed among 0,1,2,3" << endl;
-return -1;
-}
-
-VideoCapture video(1);
-//video.open(videoName);
-Sleep(2000);
-if(!video.isOpened()){
-cerr << "open " << videoName << " error" << endl;
-cerr << "current parameters : " << endl;
-//        parser.printParams();
-return -1;
-}
-
-Mat image;
-if(isUseMouse){
-string winName = "choose_windows";
-namedWindow(winName, WINDOW_AUTOSIZE);
-
-setMouseCallback(winName, onMouse, 0);
-
-double interval = 1.0/video.get(CV_CAP_PROP_FPS);
-while(true)
-{
-if(trackObject)
-break;
-
-video.read(frame);
-if(frame.empty())
-return -1;
-
-frame.copyTo(image);
-if( selectObject && selection.width > 0 && selection.height > 0 )
-{
-Mat roi(frame, selection);
-bitwise_not(roi, roi);
-}
-
-imshow(winName, frame);
-int key = waitKey(int(interval*1000));
-if(key == 27)
-return -1;
-}
-
-trackWindow = selection;
-
-destroyWindow(winName);
-}
-else
-{
-video.read(image);
-}
-
-//
-do tracking
-//
-double n = video.get(CV_CAP_PROP_POS_FRAMES);
-camShiftKalman tracker(videoName, n, image, trackWindow, type);
-
-tracker.extractTargetModel();
-tracker.track();
-
-return 0;
-}
-
-*/
 #include <cv.h>
 #include <highgui.h>
 #include <cxcore.h>
 #include <stdlib.h>
 #include <stdio.h>
-
+#include <iostream>
+#include <thread>
 
 
 #include <opencv2/core/core.hpp>
@@ -192,6 +35,89 @@ string A_Names[3] = { "desert spoon", "butter knife", "desert fork" };
 string B_Names[2] = { "dinner fork", "salad fork" };
 string C_Names[4] = { "soup spoon", "dinner spoon", "knife", "salad knife" };
 
+bool is_A_on[3] = { true, true, true };
+bool is_B_on[2] = { true, true };
+bool is_C_on[4] = { true, true, true, true };
+
+int level = 0;
+
+
+
+//Serial
+
+char buffer;
+BYTE b;
+CSerialPort cp;
+char start = 'c';
+
+
+void changelevel()
+{
+	//Set all element false
+	for (int i = 0; i < 3; ++i)
+	{
+		is_A_on[i] = false;
+	}
+	for (int i = 0; i < 2; ++i)
+	{
+		is_B_on[i] = false;
+	}
+	for (int i = 0; i < 4; ++i)
+	{
+		is_C_on[i] = false;
+	}
+
+	if (level == 0)
+		return;
+	else if (level == 1)
+	{
+		// soup spoon
+		is_C_on[0] = true;
+	}
+	else if (level == 2)
+	{
+		// butter knife
+		is_A_on[1] = true;
+	}
+	else if (level == 3)
+	{
+		// salad fork
+		is_B_on[1] = true;
+		// salad knife
+		is_C_on[3] = true;
+	}
+	else if (level == 4)
+	{
+		// dinner fork
+		is_B_on[0] = true;
+		// knife
+		is_C_on[2] = true;
+
+	}
+	else if (level == 5)
+	{
+		// desert spoon
+		is_A_on[0] = true;
+		// desert fork
+		is_A_on[2] = true;
+	}
+	else
+	{
+		// set all true
+		for (int i = 0; i < 3; ++i)
+		{
+			is_A_on[i] = true;
+		}
+		for (int i = 0; i < 2; ++i)
+		{
+			is_B_on[i] = true;
+		}
+		for (int i = 0; i < 4; ++i)
+		{
+			is_C_on[i] = true;
+		}
+	}
+}
 
 
 int calX(int x) {
@@ -278,24 +204,86 @@ int filter(int * input_tag, int value)
 	return 0;
 }
 
+
+void show_video(const int stage) {
+	if (stage > -1 && stage < 6) {
+		IplImage *frame;
+		string stage_video_names[6] = { "HCI_intro_video.wmv", "HCI_step1_video.wmv", "HCI_step2_video.wmv", "HCI_step3_video.wmv", "HCI_step4_video.wmv", "HCI_step5_video.wmv" };
+		string file_name = stage_video_names[stage];
+		//CvCapture* capture = cvCaptureFromFile(file_name.c_str());
+		CvCapture* capture = cvCaptureFromFile("HCI_intro_video.wmv");
+		//cvNamedWindow("step_video", 1);
+
+		while (capture) {
+		
+			//cout << "here" << endl;
+
+
+			frame = cvQueryFrame(capture);
+			if (!frame) break;
+			cvShowImage("MessageShowing", frame);
+			
+			
+			if (cvWaitKey(33) == 27)
+				break;
+				
+
+		
+
+
+		}
+
+		cvReleaseCapture(&capture);
+		//cvDestroyWindow("step_video");
+	}
+}
+
+
+void serial()
+{
+
+	while(1){
+	//data receiving from arduino
+		cp.ReadByte(b);
+		buffer = b;
+		printf("%c \n", buffer);
+	}
+}
+
 int main()
 {
 	//Detect Sitting
+	/*
 	char buffer;
 	BYTE b;
 	CSerialPort cp;
+	char start = 'c';
 
+	*/
 	cp.OpenPort("COM9");
 	cp.ConfigurePort(CBR_9600, 8, FALSE, NOPARITY, ONESTOPBIT); //포트 기본값을 설정한다.
 	cp.SetCommunicationTimeouts(0, 0, 0, 0, 0); //Timeout값 설정
 	while (1)
 	{
+		cp.WriteByte(start);
+		
 		cp.ReadByte(b);
 		buffer = b;
 		printf("%c", buffer);
+		
 		if (buffer == 's')
 			break;
 	}
+
+
+
+	//thread 생성
+
+
+	thread t1(&serial);
+
+	//t1.join();
+
 
 	IplImage * frame = NULL; // 현재 카메라 영상 저장
 	IplImage * img2 = NULL;
@@ -310,6 +298,7 @@ int main()
 	cvNamedWindow("Rtracker", 1); // 윈도우 생성 
 	cvNamedWindow("MessageShowing", 1);
 	cvResizeWindow("MessageShowing", 1024, 768); //  또 다른 윈도우 생성
+	show_video(level); // intro 동영상
 	Mat windowImage;
 	windowImage = imread("image.png");
 	if (!windowImage.data) {
@@ -353,10 +342,29 @@ int main()
 	bool entry = false;
 	//int c_center
 	//int count = 0;
+	changelevel();
 
 	while (1)
 	{
-		windowImage = imread("image.png");
+
+		//printf("hello\n");
+	
+		
+		//if (level == 0)
+			//windowImage = imread("proceed.jpg");
+		if (level == 1)
+			windowImage = imread("step1.png");
+		else if (level == 2)
+			windowImage = imread("step2.jpg");
+		else if (level == 3)
+			windowImage = imread("step3.jpg");
+		else if (level == 4)
+			windowImage = imread("step4.jpg");
+		else if (level == 5)
+			windowImage = imread("step5.jpg");
+		else
+			windowImage = imread("image.png");
+
 
 		cvResizeWindow("Rtracker", 1024, 768);
 
@@ -376,6 +384,10 @@ int main()
 		for (int i = 0; i < frame->height / 2; i = i + 2)
 			for (int j = 0; j < frame->width; j = j + 2)
 			{
+
+				
+			
+				
 
 
 				CvScalar v = cvGet2D(frame, i, j);
@@ -403,10 +415,8 @@ int main()
 				//count++;
 				x = j;
 				y = i;
-
 				//  center_x = center_x + x;
 				//  center_y = center_y + y;
-
 				cvRectangle(frame, cvPoint(x, y),
 				cvPoint(x + 2, y + 2), cvScalar(255, 0, 0), 2, 8, 0);// 만족하는 경우 사각형을 그려주게 됨 .
 				}
@@ -465,10 +475,14 @@ int main()
 			prev_a_center_x[i] = filter(&a_center_x[i], a_center_x[i]);
 			prev_a_center_y[i] = filter(&a_center_y[i], a_center_y[i]);
 
-			rectangle(windowImage, Point(calX(prev_a_center_x[i]), calY(prev_a_center_y[i])),
-				Point(calX(prev_a_center_x[i]) + 20, calY(prev_a_center_y[i]) + 20), Scalar(0, 55, 255), 5, 5);
+			if (is_A_on[i])
+			{
+				rectangle(windowImage, Point(calX(prev_a_center_x[i]), calY(prev_a_center_y[i])),
+					Point(calX(prev_a_center_x[i]) + 20, calY(prev_a_center_y[i]) + 20), Scalar(0, 55, 255), 5, 5);
 
-			putText(windowImage, A_Names[i], Point(calX(prev_a_center_x[i]), calY(prev_a_center_y[i])), CV_FONT_HERSHEY_SIMPLEX, 1, Scalar::all(255), 3, 8);
+				putText(windowImage, A_Names[i], Point(calX(prev_a_center_x[i]), calY(prev_a_center_y[i])), CV_FONT_HERSHEY_SIMPLEX, 1, Scalar::all(255), 3, 8);
+			}
+
 			a_center_x[i] = 0;
 			a_center_y[i] = 0;
 			a_count[i] = 1;
@@ -477,7 +491,7 @@ int main()
 
 		//B section
 		for (int i = frame->height / 2; i < frame->height; i = i + 2)
-			for (int j = 0; j < frame->width / 2; j = j + 2)
+			for (int j = 0; j < frame->width / 3; j = j + 2)
 			{
 
 
@@ -507,15 +521,11 @@ int main()
 				b_count[1]++;
 				x = j;
 				y = i;
-
 				b_center_x[1] = b_center_x[1] + x;
 				b_center_y[1] = b_center_y[1] + y;
-
 				cvRectangle(frame, cvPoint(x, y),
 				cvPoint(x + 2, y + 2), cvScalar(255, 255, 255), 2, 8, 0);// 만족하는 경우 사각형을 그려주게 됨 .
 				}
-
-
 				*/
 				if (R>60 && G<90 && G>50 && B<20)// yellow
 				{
@@ -530,16 +540,13 @@ int main()
 						cvPoint(x + 2, y + 2), cvScalar(100, 0, 100), 2, 8, 0);// 만족하는 경우 사각형을 그려주게 됨 .
 				}
 				/*
-
 				if (G > 80 && R< 80 && B < 30) // green detection
 				{
 				b_count[3]++;
 				x = j;
 				y = i;
-
 				b_center_x[3] = b_center_x[3] + x;
 				b_center_y[3] = b_center_y[3] + y;
-
 				cvRectangle(frame, cvPoint(x, y),
 				cvPoint(x + 2, y + 2), cvScalar(100, 0, 100), 2, 8, 0);// 만족하는 경우 사각형을 그려주게 됨 .
 				}
@@ -570,9 +577,15 @@ int main()
 			prev_b_center_x[i] = filter(&b_center_x[i], b_center_x[i]);
 			prev_b_center_y[i] = filter(&b_center_y[i], b_center_y[i]);
 
-			rectangle(windowImage, Point(calX(prev_b_center_x[i]), calY(prev_b_center_y[i])),
-				Point(calX(prev_b_center_x[i]) + 20, calY(prev_b_center_y[i]) + 20), Scalar(0, 55, 255), 5, 5);
-			putText(windowImage, B_Names[i], Point(calX(prev_b_center_x[i]), calY(prev_b_center_y[i])), CV_FONT_HERSHEY_SIMPLEX, 1, Scalar::all(255), 3, 8);
+			if (is_B_on[i])
+			{
+				rectangle(windowImage, Point(calX(prev_b_center_x[i]), calY(prev_b_center_y[i])),
+					Point(calX(prev_b_center_x[i]) + 20, calY(prev_b_center_y[i]) + 20), Scalar(0, 55, 255), 5, 5);
+				putText(windowImage, B_Names[i], Point(calX(prev_b_center_x[i]), calY(prev_b_center_y[i])), CV_FONT_HERSHEY_SIMPLEX, 1, Scalar::all(255), 3, 8);
+
+			}
+
+
 			b_center_x[i] = 0;
 			b_center_y[i] = 0;
 			b_count[i] = 1;
@@ -582,7 +595,7 @@ int main()
 
 		//B section
 		for (int i = frame->height / 2; i < frame->height; i = i + 2)
-			for (int j = frame->width / 2; j < frame->width; j = j + 2)
+			for (int j = ((frame->width) * 2 / 3); j < frame->width; j = j + 2)
 			{
 
 
@@ -675,9 +688,12 @@ int main()
 			prev_c_center_x[i] = filter(&c_center_x[i], c_center_x[i]);
 			prev_c_center_y[i] = filter(&c_center_y[i], c_center_y[i]);
 
-			rectangle(windowImage, Point(calX(prev_c_center_x[i]), calY(prev_c_center_y[i])),
-				Point(calX(prev_c_center_x[i]) + 20, calY(prev_c_center_y[i]) + 20), Scalar(0, 55, 255), 5, 5);
-			putText(windowImage, C_Names[i], Point(calX(prev_c_center_x[i]), calY(prev_c_center_y[i])), CV_FONT_HERSHEY_SIMPLEX, 1, Scalar::all(255), 3, 8);
+			if (is_C_on[i])
+			{
+				rectangle(windowImage, Point(calX(prev_c_center_x[i]), calY(prev_c_center_y[i])),
+					Point(calX(prev_c_center_x[i]) + 20, calY(prev_c_center_y[i]) + 20), Scalar(0, 55, 255), 5, 5);
+				putText(windowImage, C_Names[i], Point(calX(prev_c_center_x[i]), calY(prev_c_center_y[i])), CV_FONT_HERSHEY_SIMPLEX, 1, Scalar::all(255), 3, 8);
+			}
 			c_center_x[i] = 0;
 			c_center_y[i] = 0;
 			c_count[i] = 1;
@@ -687,8 +703,37 @@ int main()
 
 		cvShowImage("Rtracker", frame);
 		imshow("MessageShowing", windowImage);
+
+
+
+
+
 		c = cvWaitKey(10);
+		//ESC Key
+
+
+		//data receiving from arduino
+		cp.ReadByte(b);
+		buffer = b;
+		printf("%c \n", buffer);
+
+
 		if (c == 27) break;
+		//press n to proceed
+		if (c == 'n'  || buffer == '2')
+		{
+			level++;
+			changelevel();
+			show_video(level);
+			
+		}
+
+		if (buffer == '3')
+		{
+			
+		}
+
+		//Filter option
 		if (!entry)
 		{
 			entry = true;
@@ -702,5 +747,3 @@ int main()
 	return 0;
 
 }
-
-
