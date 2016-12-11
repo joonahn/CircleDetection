@@ -16,12 +16,14 @@
 using namespace std;
 using namespace cv;
 
-#define X_RATIO 1.75
-#define Y_RATIO 1.7
+#pragma comment(lib, "Winmm.lib")
+
+#define X_RATIO 1.64
+#define Y_RATIO 1.45
 #define X_OFFSET 0
 #define Y_OFFSET 60
 #define FILTER_VAL 0.95
-#define FILTER_SIZE 10
+#define FILTER_SIZE 5
 
 bool is_filter_enabled = false;
 int ** taglist;
@@ -40,7 +42,7 @@ bool is_B_on[2] = { true, true };
 bool is_C_on[4] = { true, true, true, true };
 
 int level = 0;
-
+int temp_level = 0;
 
 //Serial
 
@@ -208,12 +210,12 @@ int filter(int * input_tag, int value)
 void show_video(const int stage) {
 	if (stage > -1 && stage < 6) {
 		IplImage *frame;
-		string stage_video_names[6] = { "HCI_intro_video.wmv", "HCI_step1_video.wmv", "HCI_step2_video.wmv", "HCI_step3_video.wmv", "HCI_step4_video.wmv", "HCI_step5_video.wmv" };
+		string stage_video_names[6] = { "HCI_intro_video.avi", "HCI_step1_video.mp4", "HCI_step2_video.mp4", "HCI_step3_video.mp4", "HCI_step4_video.wmv", "HCI_step5_video.wmv" };
 		string file_name = stage_video_names[stage];
-		//CvCapture* capture = cvCaptureFromFile(file_name.c_str());
-		CvCapture* capture = cvCaptureFromFile("HCI_intro_video.wmv");
+		CvCapture* capture = cvCaptureFromFile(file_name.c_str());
 		//cvNamedWindow("step_video", 1);
-
+		mciSendStringA("open \"sample.mp3\" type mpegvideo alias mp3", NULL, 0, NULL);
+		mciSendStringA("play mp3", NULL, 0, NULL);
 		while (capture) {
 		
 			//cout << "here" << endl;
@@ -232,7 +234,7 @@ void show_video(const int stage) {
 
 
 		}
-
+		mciSendStringA("stop mp3", NULL, 0, NULL);
 		cvReleaseCapture(&capture);
 		//cvDestroyWindow("step_video");
 	}
@@ -263,7 +265,7 @@ int main()
 	cp.OpenPort("COM9");
 	cp.ConfigurePort(CBR_9600, 8, FALSE, NOPARITY, ONESTOPBIT); //포트 기본값을 설정한다.
 	cp.SetCommunicationTimeouts(0, 0, 0, 0, 0); //Timeout값 설정
-	while (0)
+	while (1)
 	{
 		cp.WriteByte(start);
 		
@@ -352,7 +354,7 @@ int main()
 		//if (level == 0)
 			//windowImage = imread("proceed.jpg");
 		if (level == 1)
-			windowImage = imread("step1.png");
+			windowImage = imread("step1.jpg");
 		else if (level == 2)
 			windowImage = imread("step2.jpg");
 		else if (level == 3)
@@ -490,7 +492,7 @@ int main()
 
 		//B section
 		for (int i = frame->height / 2; i < frame->height; i = i + 2)
-			for (int j = 0; j < frame->width / 3; j = j + 2)
+			for (int j = 0; j < frame->width / 2; j = j + 2)
 			{
 
 
@@ -594,7 +596,7 @@ int main()
 
 		//B section
 		for (int i = frame->height / 2; i < frame->height; i = i + 2)
-			for (int j = ((frame->width) * 2 / 3); j < frame->width; j = j + 2)
+			for (int j = ((frame->width) /2); j < frame->width; j = j + 2)
 			{
 
 
@@ -712,26 +714,31 @@ int main()
 
 
 
-		//data receiving from arduino
-		cp.ReadByte(b);
-		buffer = b;
-		printf("%c \n", buffer);
+
 
 
 		if (c == 27) break;
 		//press n to proceed
-		if (c == 'n'  || buffer == '2')
+		if (c == 'n'  )
 		{
 			level++;
 			changelevel();
 			show_video(level);
+			temp_level = level;
 			
 		}
-
+		
+		if (buffer == '4')
+		{
+			level = 6;
+			changelevel();
+			
+		
+		}
 		if (buffer == '3')
 		{
-			
-
+			level = temp_level;
+			changelevel();
 		}
 
 		//Filter option
