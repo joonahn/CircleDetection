@@ -42,7 +42,6 @@ bool is_C_on[4] = { true, true, true, true };
 int level = 0;
 
 
-
 //Serial
 
 char buffer;
@@ -74,6 +73,7 @@ void changelevel()
 		// soup spoon
 		is_C_on[0] = true;
 	}
+
 	else if (level == 2)
 	{
 		// butter knife
@@ -263,7 +263,7 @@ int main()
 	cp.OpenPort("COM9");
 	cp.ConfigurePort(CBR_9600, 8, FALSE, NOPARITY, ONESTOPBIT); //포트 기본값을 설정한다.
 	cp.SetCommunicationTimeouts(0, 0, 0, 0, 0); //Timeout값 설정
-	while (1)
+	while (0)
 	{
 		cp.WriteByte(start);
 		
@@ -346,7 +346,6 @@ int main()
 
 	while (1)
 	{
-
 		//printf("hello\n");
 	
 		
@@ -462,15 +461,15 @@ int main()
 				cvPoint(a_center_x[i] + 20, a_center_y[i] + 20), cvScalar(255, 255, 255), 2, 8, 0);// 만족하는 경우 사각형을 그려주게 됨 .
 
 
-																								   // if (!entry) {
-																								   //   prev_a_center_x[i] = a_center_x[i];
-																								   //   prev_a_center_y[i] = a_center_y[i];
+		// if (!entry) {
+		//   prev_a_center_x[i] = a_center_x[i];
+		//   prev_a_center_y[i] = a_center_y[i];
 
-																								   // }
-																								   // else {
-																								   //   prev_a_center_x[i] = ((1 - FILTER_VAL) * a_center_x[i] + (FILTER_VAL)* prev_a_center_x[i]);
-																								   //   prev_a_center_y[i] = ((1 - FILTER_VAL) * a_center_y[i] + (FILTER_VAL)* prev_a_center_y[i]);
-																								   // }
+		// }
+		// else {
+		//   prev_a_center_x[i] = ((1 - FILTER_VAL) * a_center_x[i] + (FILTER_VAL)* prev_a_center_x[i]);
+		//   prev_a_center_y[i] = ((1 - FILTER_VAL) * a_center_y[i] + (FILTER_VAL)* prev_a_center_y[i]);
+		// }
 
 			prev_a_center_x[i] = filter(&a_center_x[i], a_center_x[i]);
 			prev_a_center_y[i] = filter(&a_center_y[i], a_center_y[i]);
@@ -564,15 +563,15 @@ int main()
 			cvRectangle(frame, cvPoint(b_center_x[i], b_center_y[i]),
 				cvPoint(b_center_x[i] + 20, b_center_y[i] + 20), cvScalar(255, 255, 255), 2, 8, 0);// 만족하는 경우 사각형을 그려주게 됨 .
 
-																								   // if (!entry) {
-																								   //   prev_b_center_x[i] = b_center_x[i];
-																								   //   prev_b_center_y[i] = b_center_y[i];
+		// if (!entry) {
+		//   prev_b_center_x[i] = b_center_x[i];
+		//   prev_b_center_y[i] = b_center_y[i];
 
-																								   // }
-																								   // else {
-																								   //   prev_b_center_x[i] = ((1 - FILTER_VAL) * b_center_x[i] + (FILTER_VAL)* prev_b_center_x[i]);
-																								   //   prev_b_center_y[i] = ((1 - FILTER_VAL) * b_center_y[i] + (FILTER_VAL)* prev_b_center_y[i]);
-																								   // }
+		// }
+		// else {
+		//   prev_b_center_x[i] = ((1 - FILTER_VAL) * b_center_x[i] + (FILTER_VAL)* prev_b_center_x[i]);
+		//   prev_b_center_y[i] = ((1 - FILTER_VAL) * b_center_y[i] + (FILTER_VAL)* prev_b_center_y[i]);
+		// }
 
 			prev_b_center_x[i] = filter(&b_center_x[i], b_center_x[i]);
 			prev_b_center_y[i] = filter(&b_center_y[i], b_center_y[i]);
@@ -712,6 +711,7 @@ int main()
 		//ESC Key
 
 
+
 		//data receiving from arduino
 		cp.ReadByte(b);
 		buffer = b;
@@ -731,6 +731,7 @@ int main()
 		if (buffer == '3')
 		{
 			
+
 		}
 
 		//Filter option
